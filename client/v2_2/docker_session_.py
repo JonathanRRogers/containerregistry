@@ -66,8 +66,9 @@ class Push(object):
       ValueError: an incorrectly typed argument was supplied.
     """
     self._name = name
-    self._transport = docker_http.Transport(name, creds, transport,
-                                            docker_http.PUSH)
+    self._transport = docker_http.Transport(
+        name, creds, transport, docker_http.PUSH,
+        extra_name_action_pairs=tuple((name, docker_http.PULL) for name in mount))
     self._mount = mount
     self._threads = threads
 

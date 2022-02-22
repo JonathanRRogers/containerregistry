@@ -191,15 +191,16 @@ class Transport(object):
 
   def __init__(self, name,
                creds,
-               transport, action):
-    self._name = name
+               transport, action, extra_name_action_pairs=()):
+    self._registry = name.registry
+    self._name_action_pairs = ((name, action),) + tuple(extra_name_action_pairs)
     self._basic_creds = creds
     self._transport = transport
-    self._action = action
     self._lock = threading.Lock()
 
-    _CheckState(action in ACTIONS,
-                'Invalid action supplied to docker_http.Transport: %s' % action)
+    for _, action in self._name_action_pairs:
+        _CheckState(action in ACTIONS,
+                    'Invalid action supplied to docker_http.Transport: %s' % action)
 
     # Ping once to establish realm, and then get a good credential
     # for use with this transport.
@@ -226,7 +227,7 @@ class Transport(object):
     }
     resp, content = self._transport.request(
         '{scheme}://{registry}/v2/'.format(
-            scheme=Scheme(self._name.registry), registry=self._name.registry),
+            scheme=Scheme(self._registry), registry=self._registry),
         'GET',
         body=None,
         headers=headers)
@@ -261,7 +262,7 @@ class Transport(object):
                 self._authentication)
 
     # Default "_service" to the registry
-    self._service = self._name.registry
+    self._service = self._registry
 
     tokens = remainder.split(',')
     for t in tokens:
@@ -276,7 +277,7 @@ class Transport(object):
 
   def _Scope(self):
     """Construct the resource scope to pass to a v2 auth endpoint."""
-    return self._name.scope(self._action)
+    return ' '.join(name.scope(action) for name, action in self._name_action_pairs)
 
   def _Refresh(self):
     """Refreshes the Bearer token credentials underlying this transport.

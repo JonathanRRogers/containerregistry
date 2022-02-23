@@ -66,9 +66,14 @@ class Push(object):
       ValueError: an incorrectly typed argument was supplied.
     """
     self._name = name
+    extra_name_action_pairs = ()
+    if name.registry.endswith('azurecr.io'):
+        # Azure Container Registry requires Pull on mounted repositories.
+        extra_name_action_pairs = tuple((name, docker_http.PULL) for name in mount)
+
     self._transport = docker_http.Transport(
         name, creds, transport, docker_http.PUSH,
-        extra_name_action_pairs=tuple((name, docker_http.PULL) for name in mount))
+        extra_name_action_pairs=extra_name_action_pairs)
     self._mount = mount
     self._threads = threads
 
